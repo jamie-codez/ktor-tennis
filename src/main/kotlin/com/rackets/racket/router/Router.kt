@@ -9,12 +9,12 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.Serializable
 import mu.KotlinLogging
-import kotlin.text.get
 
 private const val RACKETS_ENDPOINT = "/api/v1/rackets"
 private val logger = KotlinLogging.logger {}
-private val racketsRepository:RacketsRepository = RacketsRepositoryImpl()
+private val racketsRepository: RacketsRepository = RacketsRepositoryImpl()
 fun Application.racketRoutes() {
     routing {
         route(RACKETS_ENDPOINT) {
@@ -27,14 +27,11 @@ fun Application.racketRoutes() {
                 if (page != null && page > 0 && size != null && size > 0) {
                     logger.info("GET $RACKETS_ENDPOINT?page=$page&size=$size")
                     racketsRepository.findAllPageable(page, size).let { rackets ->
-                        val payload = mapOf(
-                            "page" to page,
-                            "size" to size,
-                            "data" to rackets
-                        )
+                        val payload = PageResponse(page, size, rackets.toList())
                         call.respond(HttpStatusCode.OK, payload)
                     }
                 } else {
+                    logger.info("GET $RACKETS_ENDPOINT -> get all rackets")
                     racketsRepository.findAll().let { rackets ->
                         call.respond(HttpStatusCode.OK, rackets.toList())
                     }
@@ -120,3 +117,9 @@ fun Application.racketRoutes() {
 }
 
 
+@Serializable
+data class PageResponse<T>(
+    val page: Int,
+    val size: Int,
+    val data: List<T>
+)
